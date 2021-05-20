@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ExileCore
@@ -14,17 +15,19 @@ namespace ExileCore
         public string Name { get; set; }
         public double ElapsedMs { get; set; }
         public double TimeoutMs { get; set; }
+        public int SleepAfterDoneMs { get; set; }
 
         public volatile bool IsCompleted;
         public volatile bool IsFailed;
         public volatile bool IsStarted;
 
         private readonly Stopwatch _stopwatch;
-        public Job(string name, Action work, double timeoutMs = 500)
+        public Job(string name, Action work, double timeoutMs = 500, int sleepAfterDoneMs = 0)
         {
             Name = name;
             Work = work;
             TimeoutMs = timeoutMs;
+            SleepAfterDoneMs = sleepAfterDoneMs;
             _stopwatch = new Stopwatch();
         }       
 
@@ -45,6 +48,7 @@ namespace ExileCore
             finally
             {
                 ElapsedMs = _stopwatch.Elapsed.TotalMilliseconds;
+                if (SleepAfterDoneMs > 0) Thread.Sleep(SleepAfterDoneMs);
                 IsCompleted = true;
             }
         }
