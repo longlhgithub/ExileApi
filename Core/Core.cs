@@ -139,31 +139,10 @@ namespace ExileCore
                 _coreSettings.VSync.OnValueChanged += (obj, b) => { _dx11.VSync = _coreSettings.VSync.Value; };
                 Graphics = new Graphics(_dx11, _coreSettings);
 
-                MainRunner = CoroutineRunner;
-                ParallelRunner = CoroutineRunnerParallel;
-
-                // Task.Run(ParallelCoroutineRunner);
-                var th = new Thread(ParallelCoroutineManualThread) {Name = "Parallel Coroutine", IsBackground = true};
-                th.Start();
                 _mainMenu = new MenuWindow(this, _settings, _dx11.ImGuiRender.fonts, ref versionChecker);
                 _debugWindow = new DebugWindow(Graphics, _coreSettings);
 
                 MultiThreadManager = new MultiThreadManager(_coreSettings.Threads);
-                CoroutineRunner.MultiThreadManager = MultiThreadManager;
-
-                _coreSettings.Threads.OnValueChanged += (sender, i) =>
-                {
-                    if (MultiThreadManager == null)
-                        MultiThreadManager = new MultiThreadManager(i);
-                    else
-                    {
-                        var coroutine1 =
-                            new Coroutine(() => { MultiThreadManager.ChangeNumberThreads(_coreSettings.Threads); },
-                                new WaitTime(2000), null, "Change Threads Number", false) {SyncModWork = true};
-
-                        ParallelRunner.Run(coroutine1);
-                    }
-                };
 
                 TargetPcFrameTime = 1000f / _coreSettings.TargetFps;
                 _targetParallelFpsTime = 1000f / _coreSettings.TargetParallelFPS;
@@ -181,11 +160,6 @@ namespace ExileCore
 
                 if (GameController == null && _memory != null) Inject();
 
-                var coroutine = new Coroutine(MainControl(), null, "Render control")
-                    {Priority = CoroutinePriority.Critical};
-
-                CoroutineRunnerParallel.Run(coroutine);
-                NextCoroutineTime = Time.TotalMilliseconds;
                 NextRender = Time.TotalMilliseconds;
                 if (pluginManager?.Plugins.Count == 0)
                 {
@@ -237,23 +211,22 @@ namespace ExileCore
             pluginManager?.CloseAllPlugins();
         }
 
-        private IEnumerator MainControl()
+        private Job MainControl()
         {
-            while (true)
+            return new Job("MainControl", () =>
             {
                 if (_memory == null)
                 {
                     _memory = FindPoe();
-                    if (_memory == null) yield return _mainControl;
-                    continue;
+                    if (_memory == null) return;
                 }
 
                 if (GameController == null && _memory != null)
                 {
                     Inject();
-                    if (GameController == null) yield return _mainControl;
-                    continue;
                 }
+
+                if (GameController == null) return;
 
                 var clientRectangle = WinApi.GetClientRectangle(_memory.Process.MainWindowHandle);
 
@@ -278,14 +251,14 @@ namespace ExileCore
                 else
                 {
                     var isForegroundWindow = WinApi.IsForegroundWindow(_memory.Process.MainWindowHandle) ||
-                                                          WinApi.IsForegroundWindow(FormHandle) || _coreSettings.ForceForeground;
+                                             WinApi.IsForegroundWindow(FormHandle) || _coreSettings.ForceForeground;
 
                     IsForeground = isForegroundWindow;
                     GameController.IsForeGroundCache = isForegroundWindow;
                 }
-
-                yield return _mainControl2;
-            }
+            },
+            1000,
+            500);
         }
 
         public static Memory FindPoe()
@@ -344,6 +317,11 @@ namespace ExileCore
                 FramesCount++;
 
                 ForeGroundTime = IsForeground ? 0 : ForeGroundTime + _deltaTargetPcFrameTime;
+                if (ForeGroundTime > 100) return;
+
+                ThreadManager.AddOrUpdateJob(MainControl());
+                var collectEntitiesJob = GameController.EntityListWrapper.CollectEntitiesJob();
+                ThreadManager.AddOrUpdateJob(collectEntitiesJob);
 
                 if (ForeGroundTime <= 100)
                 {
@@ -477,51 +455,6 @@ namespace ExileCore
                 return clients[ixChosen];
 
             return null;
-        }
-
-        private void ParallelCoroutineManualThread()
-        {
-            try
-            {
-                while (true)
-                {
-                    MultiThreadManager?.Process(this);
-                    _startParallelCoroutineTimer = _sw.Elapsed.TotalMilliseconds;
-
-                    if (CoroutineRunnerParallel.IsRunning)
-                    {
-                        try
-                        {
-                            for (var i = 0; i < CoroutineRunnerParallel.IterationPerFrame; i++)
-                            {
-                                CoroutineRunnerParallel.Update();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            DebugWindow.LogMsg($"Coroutine Parallel error: {e.Message}", 6, Color.White);
-                        }
-                    }
-                    else
-                        Thread.Sleep(10);
-
-                    _endParallelCoroutineTimer = _sw.Elapsed.TotalMilliseconds;
-                    _elTime = _endParallelCoroutineTimer - _startParallelCoroutineTimer;
-
-                    _parallelCoroutineTickDebugInformation.Tick = _elTime;
-
-                    if (_elTime < _targetParallelFpsTime)
-                    {
-                        var millisecondsDelay = _targetParallelFpsTime - _elTime;
-                        Thread.Sleep((int) millisecondsDelay);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                DebugWindow.LogMsg($"Coroutine Parallel error: {e.Message}", 6, Color.White);
-                throw;
-            }
         }
 
         public void Render()

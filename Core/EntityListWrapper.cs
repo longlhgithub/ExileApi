@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.MemoryObjects;
@@ -20,7 +21,6 @@ namespace ExileCore
 
         private readonly CoreSettings _settings;
         private readonly GameController _gameController;
-        private readonly Coroutine _parallelUpdateDictionary;
         private static EntityListWrapper _instance;
 
         public Entity Player { get; private set; }
@@ -45,40 +45,26 @@ namespace ExileCore
             _gameController = gameController;
             _settings = settings;
             _gameController.Area.OnAreaChange += AreaChanged;
-            _parallelUpdateDictionary = new Coroutine(CollectEntities(), null, "Collect Entities") {SyncModWork = true};
-
-            _settings.EntitiesUpdate.OnValueChanged += (sender, i) => { UpdateCondition(1000 / i); };
-            UpdateCondition(1000 / _settings.EntitiesUpdate);
 
             PlayerUpdate += (sender, entity) => Entity.Player = entity;
             ValidEntitiesByType = NewValidEntitiesByType();
         }
 
-        private IEnumerator CollectEntities()
+        public Job CollectEntitiesJob()
         {
-            while (true)
-            {
-                yield return _gameController.IngameState.Data.EntityList.CollectEntities(
-                    _settings.ParseServerEntities?.Value ?? false,
-                    new ParallelOptions { MaxDegreeOfParallelism = _settings.Threads },
-                    EntityRemoved,
-                    EntityAdded
+            return new Job("CollectEntities", () =>
+                {
+                    _gameController.IngameState.Data.EntityList.CollectEntities2(
+                        _settings.ParseServerEntities?.Value ?? false,
+                        new ParallelOptions {MaxDegreeOfParallelism = _settings.Threads},
+                        EntityRemoved,
+                        EntityAdded
                     );
-                ValidEntitiesByType = UpdateValidEntitiesByType();
-                yield return new WaitTime(1000 / _settings.EntitiesUpdate);
-                _parallelUpdateDictionary.UpdateTicks((uint)(_parallelUpdateDictionary.Ticks + 1));
-
-            }
-        }
-
-        public void StartWork()
-        {
-            Core.ParallelRunner.Run(_parallelUpdateDictionary);
-        }
-
-        private void UpdateCondition(int coroutineTimeWait = 50)
-        {
-            _parallelUpdateDictionary.UpdateCondtion(new WaitTime(coroutineTimeWait));
+                    ValidEntitiesByType = UpdateValidEntitiesByType();
+                },
+                Math.Max(100, 1000 / _settings.EntitiesUpdate),
+                1000 / _settings.EntitiesUpdate
+            );
         }
 
         private void AreaChanged(AreaInstance area)

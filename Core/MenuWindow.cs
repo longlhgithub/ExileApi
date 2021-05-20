@@ -479,25 +479,6 @@ namespace ExileCore
                     ImGui.Columns(1, "", false);
                     break;
                 }
-
-                case Windows.Coroutines:
-                    DrawCoroutineRunnerInfo(Core.CoroutineRunner);
-                    DrawCoroutineRunnerInfo(Core.CoroutineRunnerParallel);
-
-                    if (ImGui.CollapsingHeader("Finished coroutines"))
-                    {
-                        foreach (var runner in Core.MainRunner.FinishedCoroutines)
-                        {
-                            ImGui.Text($"{runner.Name} - {runner.Ticks} - {runner.OwnerName} - {runner.Started} - {runner.Finished}");
-                        }
-
-                        foreach (var runner in Core.ParallelRunner.FinishedCoroutines)
-                        {
-                            ImGui.Text($"{runner.Name} - {runner.Ticks} - {runner.OwnerName} - {runner.Started} - {runner.Finished}");
-                        }
-                    }
-
-                    break;
                 case Windows.Caches:
                     ImGui.Columns(6, "Cache table", true);
 

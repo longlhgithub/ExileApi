@@ -88,25 +88,25 @@ namespace ExileCore
             LeftCornerMap = new TimeCache<Vector2>(GetLeftCornerMap, 500);
             UnderCornerMap = new TimeCache<Vector2>(GetUnderCornerMap, 500);
 
-            eIsForegroundChanged += b =>
-            {
-                if (b)
-                {
-                    Core.MainRunner.ResumeCoroutines(Core.MainRunner.Coroutines);
-                    Core.ParallelRunner.ResumeCoroutines(Core.ParallelRunner.Coroutines);
-                }
-                else
-                {
-                    Core.MainRunner.PauseCoroutines(Core.MainRunner.Coroutines);
-                    Core.ParallelRunner.PauseCoroutines(Core.ParallelRunner.Coroutines);
-                }
+            //eIsForegroundChanged += b =>
+            //{
+            //    if (b)
+            //    {
+            //        Core.MainRunner.ResumeCoroutines(Core.MainRunner.Coroutines);
+            //        Core.ParallelRunner.ResumeCoroutines(Core.ParallelRunner.Coroutines);
+            //    }
+            //    else
+            //    {
+            //        Core.MainRunner.PauseCoroutines(Core.MainRunner.Coroutines);
+            //        Core.ParallelRunner.PauseCoroutines(Core.ParallelRunner.Coroutines);
+            //    }
 
-                // DebugWindow.LogMsg($"Foreground: {b}");
-            };
+            //    // DebugWindow.LogMsg($"Foreground: {b}");
+            //};
 
             _settings.RefreshArea.OnPressed += () => { Area.ForceRefreshArea(); };
             Area.RefreshState();
-            EntityListWrapper.StartWork();
+            //EntityListWrapper.StartWork();
             Initialized = true;
         }
 
