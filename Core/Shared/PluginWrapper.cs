@@ -295,14 +295,6 @@ namespace ExileCore.Shared
 
         public void ReloadPlugin(IPlugin plugin, GameController gameController, Graphics graphics, PluginManager pluginManager)
         {
-            var mainRunner = Core.MainRunner;
-            var parallelRunner = Core.ParallelRunner;
-            var coroutines = mainRunner.Coroutines.Where(x=>x.Owner==Plugin).Concat(parallelRunner.Coroutines.Where(x=>x.Owner==Plugin)).ToList();
-            foreach (var coroutine in coroutines)
-            {
-                coroutine.Done();
-            }
-
             Close();
             plugin.SetApi(gameController,graphics, pluginManager);
             plugin.DirectoryName = Plugin.DirectoryName;

@@ -379,7 +379,6 @@
     <Compile Include="Shared\AtlasHelper\AtlasTexture.cs" />
     <Compile Include="Shared\AtlasHelper\AtlasTexturesProcessor.cs" />
     <Compile Include="Shared\Cache\ValidCache.cs" />
-    <Compile Include="Shared\CoroutineTask.cs" />
     <Compile Include="Shared\DebugObjects.cs" />
     <Compile Include="Shared\Enums\AnimationE.cs" />
     <Compile Include="Shared\Enums\AtlasRegionE.cs" />
@@ -426,7 +425,6 @@
     <Compile Include="Shared\Cache\TimeCache.cs" />
     <Compile Include="Shared\CircularBuffer.cs" />
     <Compile Include="Shared\Constants.cs" />
-    <Compile Include="Shared\Coroutine.cs" />
     <Compile Include="Shared\DebugInformation.cs" />
     <Compile Include="Shared\Enums\ActionFlags.cs" />
     <Compile Include="Shared\Enums\AreaTransitionType.cs" />
@@ -506,7 +504,6 @@
     <Compile Include="Shared\PluginAutoUpdate\Settings\SinglePluginUpdateSettings.cs" />
     <Compile Include="Shared\PluginManager.cs" />
     <Compile Include="Shared\PluginWrapper.cs" />
-    <Compile Include="Shared\Runner.cs" />
     <Compile Include="Shared\Static\HudSkin.cs" />
     <Compile Include="Shared\Static\ItemClasses.cs" />
     <Compile Include="Shared\VersionChecker\AutoUpdate.cs" />

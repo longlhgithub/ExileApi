@@ -7,8 +7,6 @@ namespace ExileCore
 {
     public class AreaController
     {
-        private const string areaChangeCoroutineName = "Area change";
-
         public AreaController(TheGame theGameState)
         {
             TheGameState = theGameState;
@@ -43,13 +41,6 @@ namespace ExileCore
             return true;
         }
 
-        //Before call areachange for plugins need wait some time because sometimes gam,e memory not ready because still loading.
-        private IEnumerator CoroutineAreaChange(bool areaChangeMultiThread)
-        {
-            yield return new WaitFunction(() => TheGameState.IsLoading /*&& !TheGameState.InGame*/);
-
-            //   yield return new WaitTime((int)(TheGameState.IngameState.CurLatency));
-        }
 
         private void ActionAreaChange()
         {

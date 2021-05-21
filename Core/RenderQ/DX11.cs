@@ -20,27 +20,22 @@ namespace ExileCore.RenderQ
     public class DX11 : IDisposable
     {
         private readonly RenderForm _form;
-
-        private readonly Vector4
-            _clearColor = Color.Transparent.ToVector4().ToVector4Num(); //new System.Numerics.Vector4(0.45f, 0.55f, 0.60f, 0.1f);
-
         private readonly SwapChain _swapChain;
         private readonly object _sync = new object();
-        private Color4 ClearColor = new Color4(0, 0, 0, 0);
-        private double debugTime;
-        private double endFrameTime;
-        private readonly Factory factory;
-        private readonly DebugInformation ImGuiDebug;
-        private readonly DebugInformation SpritesDebug;
-        private double startFrameTime;
-        private readonly Stopwatch sw;
-        private readonly DebugInformation SwapchainDebug;
-        private Viewport Viewport;
+        private Color4 _clearColor = new Color4(0, 0, 0, 0);
+        private readonly Factory _factory;
+        private readonly Stopwatch _sw;
+        private double _debugTime;
+        private readonly DebugInformation _coreTickDebug;
+        private readonly DebugInformation _imGuiDebug;
+        private readonly DebugInformation _spritesDebug;
+        private readonly DebugInformation _swapchainDebug;
+        private Viewport _viewport;
 
         public DX11(RenderForm form, CoreSettings coreSettings)
         {
             _form = form;
-            sw = Stopwatch.StartNew();
+            _sw = Stopwatch.StartNew();
             LoadedTexturesByName = new Dictionary<string, ShaderResourceView>();
             LoadedTexturesByPtrs = new Dictionary<IntPtr, ShaderResourceView>();
 
@@ -72,8 +67,8 @@ namespace ExileCore.RenderQ
             DeviceContext = device.ImmediateContext;
             _swapChain = swapChain;
 
-            factory = swapChain.GetParent<Factory>();
-            factory.MakeWindowAssociation(form.Handle, WindowAssociationFlags.IgnoreAll);
+            _factory = swapChain.GetParent<Factory>();
+            _factory.MakeWindowAssociation(form.Handle, WindowAssociationFlags.IgnoreAll);
             BackBuffer = Resource.FromSwapChain<Texture2D>(swapChain, 0);
             RenderTargetView = new RenderTargetView(device, BackBuffer);
 
@@ -101,15 +96,16 @@ namespace ExileCore.RenderQ
                 ImGuiRender.UpdateConstantBuffer();
                 SpritesRender.ResizeConstBuffer(BackBuffer.Description);
                 var descp = BackBuffer.Description;
-                Viewport.Height = form.Height;
-                Viewport.Width = form.Width;
-                DeviceContext.Rasterizer.SetViewport(Viewport);
+                _viewport.Height = form.Height;
+                _viewport.Width = form.Width;
+                DeviceContext.Rasterizer.SetViewport(_viewport);
                 DeviceContext.OutputMerger.SetRenderTargets(RenderTargetView);
             };
 
-            ImGuiDebug = new DebugInformation("ImGui");
-            SpritesDebug = new DebugInformation("Sprites");
-            SwapchainDebug = new DebugInformation("Swapchain");
+            _coreTickDebug = new DebugInformation("CoreTick");
+            _imGuiDebug = new DebugInformation("ImGui");
+            _spritesDebug = new DebugInformation("Sprites");
+            _swapchainDebug = new DebugInformation("Swapchain");
 
             // Core.DebugInformations.Add(ImGuiDebug);
             // Core.DebugInformations.Add(ImGuiInputDebug);
@@ -138,7 +134,7 @@ namespace ExileCore.RenderQ
             DeviceContext.Dispose();
             D11Device.Dispose();
             _swapChain.Dispose();
-            factory.Dispose();
+            _factory.Dispose();
         }
 
         private void InitStates()
@@ -179,7 +175,7 @@ namespace ExileCore.RenderQ
             var depthStencilState = new DepthStencilState(D11Device, depthStencilStateDescription);
             DeviceContext.OutputMerger.SetDepthStencilState(depthStencilState);
 
-            Viewport = new Viewport
+            _viewport = new Viewport
             {
                 Height = _form.ClientSize.Height,
                 Width = _form.ClientSize.Width,
@@ -190,7 +186,7 @@ namespace ExileCore.RenderQ
             };
 
             // Setup and create the viewport for rendering.
-            DeviceContext.Rasterizer.SetViewport(Viewport);
+            DeviceContext.Rasterizer.SetViewport(_viewport);
             DeviceContext.OutputMerger.SetRenderTargets(RenderTargetView);
 
             DeviceContext.Rasterizer.State =
@@ -199,13 +195,13 @@ namespace ExileCore.RenderQ
 
         public void Clear(Color4 clear)
         {
-            ClearColor = clear;
+            _clearColor = clear;
             Clear();
         }
 
         public void Clear()
         {
-            DeviceContext.ClearRenderTargetView(RenderTargetView, ClearColor);
+            DeviceContext.ClearRenderTargetView(RenderTargetView, _clearColor);
         }
 
         public void DisposeTexture(string name)
@@ -259,24 +255,27 @@ namespace ExileCore.RenderQ
         {
             try
             {
-                startFrameTime = sw.Elapsed.TotalSeconds;
-                Clear(new Color(_clearColor.X, _clearColor.Y, _clearColor.Z, _clearColor.W));
-                debugTime = sw.Elapsed.TotalMilliseconds;
+                Clear(Color.Transparent);
                 ImGui.NewFrame();
-
                 // ImGuiRender.InputUpdate();
                 ImGuiRender.BeginBackGroundWindow();
+
+                _debugTime = _sw.Elapsed.TotalMilliseconds;
                 core.Tick();
-                debugTime = sw.Elapsed.TotalMilliseconds;
+                _coreTickDebug.Tick = _sw.Elapsed.TotalMilliseconds - _debugTime;
+
+                _debugTime = _sw.Elapsed.TotalMilliseconds;
                 SpritesRender.Render();
-                SpritesDebug.Tick = sw.Elapsed.TotalMilliseconds - debugTime;
-                debugTime = sw.Elapsed.TotalMilliseconds;
+                _spritesDebug.Tick = _sw.Elapsed.TotalMilliseconds - _debugTime;
+
+                _debugTime = _sw.Elapsed.TotalMilliseconds;
                 ImGuiRender.Render();
-                ImGuiDebug.Tick = sw.Elapsed.TotalMilliseconds - debugTime;
-                debugTime = sw.Elapsed.TotalMilliseconds;
+                _imGuiDebug.Tick = _sw.Elapsed.TotalMilliseconds - _debugTime;
+
+                _debugTime = _sw.Elapsed.TotalMilliseconds;
                 _swapChain.Present(VSync ? 1 : 0, PresentFlags.None);
-                SwapchainDebug.Tick = (float) (sw.Elapsed.TotalMilliseconds - debugTime);
-                endFrameTime = sw.Elapsed.TotalSeconds;
+                _swapchainDebug.Tick = _sw.Elapsed.TotalMilliseconds - _debugTime;
+
                 ImGui.GetIO().DeltaTime = (float) Time.DeltaTime;
             }
             catch (Exception e)

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows.Forms;
 using ExileCore.Shared;
 using ExileCore.Shared.Helpers;
@@ -30,8 +31,6 @@ namespace ExileCore
         private static readonly Dictionary<Keys, bool> Keys = new Dictionary<Keys, bool>();
         public static readonly HashSet<Keys> RegisteredKeys = new HashSet<Keys>();
         private static readonly object locker = new object();
-        private static readonly WaitTime cursorPositionSmooth = new WaitTime(1);
-        private static readonly WaitTime keyPress = new WaitTime(ACTION_DELAY);
         private static readonly Dictionary<Keys, bool> KeysPressed = new Dictionary<Keys, bool>();
         private static readonly Stopwatch sw = Stopwatch.StartNew();
 
@@ -101,7 +100,7 @@ namespace ExileCore
             }
         }
 
-        public static IEnumerator SetCursorPositionSmooth(Vector2 vec)
+        public static void SetCursorPositionSmooth(Vector2 vec)
         {
             var step = Math.Max(vec.Distance(ForceMousePosition) / 100, 4);
 
@@ -112,7 +111,7 @@ namespace ExileCore
                     var vector2 = Vector2.SmoothStep(ForceMousePosition, vec, i / step);
                     SetCursorPos(vector2);
                     MouseMove();
-                    yield return cursorPositionSmooth;
+                    Thread.Sleep(ACTION_DELAY);
                 }
             }
             else
@@ -191,10 +190,10 @@ namespace ExileCore
             WinApi.mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, 0);
         }
 
-        public static IEnumerator KeyPress(Keys key)
+        public static void KeyPress(Keys key)
         {
             KeyDown(key);
-            yield return keyPress;
+            Thread.Sleep(ACTION_DELAY);
             KeyUp(key);
         }
 

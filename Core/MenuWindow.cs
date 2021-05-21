@@ -106,7 +106,7 @@ namespace ExileCore
                         {
                             DebugWindow.LogError($"SaveSettings for PluginAutoUpdate error: {e}");
                         }
-                        foreach (var plugin in core.pluginManager.Plugins)
+                        foreach (var plugin in core._pluginManager.Plugins)
                         {
                             try
                             {
@@ -298,7 +298,7 @@ namespace ExileCore
 
             ImGui.Separator();
 
-            if (_gameController != null && Core.pluginManager != null)
+            if (_gameController != null && Core._pluginManager != null)
             {
                 for (var index = 0; index < plugins.Count; index++)
                 {
@@ -744,85 +744,11 @@ namespace ExileCore
             if (selectedName == deb.Name) ImGui.PopStyleColor();
         }
 
-        private void DrawCoroutineRunnerInfo(Runner runner)
-        {
-            ImGui.Separator();
-            ImGui.Text($"{runner.Name}");
-            ImGui.Columns(11, "CoroutineTable", true);
-            ImGui.Text("Name");
-            ImGui.NextColumn();
-            ImGui.Text("Owner");
-            ImGui.NextColumn();
-            ImGui.Text("Ticks");
-            ImGui.NextColumn();
-            ImGui.Text("Time ms");
-            ImGui.NextColumn();
-            ImGui.Text("Started");
-            ImGui.NextColumn();
-            ImGui.Text("Timeout");
-            ImGui.SameLine();
-            ImGui.NextColumn();
-            ImGui.Text("DoWork");
-            ImGui.NextColumn();
-            ImGui.Text("AutoResume");
-            ImGui.NextColumn();
-            ImGui.Text("Done");
-            ImGui.NextColumn();
-            ImGui.Text("Priority");
-            ImGui.NextColumn();
-            ImGui.Text("DO");
-            ImGui.NextColumn();
-            var coroutines = runner.Coroutines.OrderByDescending(x => x.Priority).ToList();
-
-            for (var i = 0; i < coroutines.Count(); i++)
-            {
-                var type = "";
-                if (coroutines[i].Condition != null) type = coroutines[i].Condition.GetType().Name;
-                ImGui.Text($"{coroutines[i].Name}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].OwnerName}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].Ticks}");
-                ImGui.NextColumn();
-                runner.CoroutinePerformance.TryGetValue(coroutines[i].Name, out var time);
-                ImGui.Text($"{Math.Round(time, 2)}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].Started.ToLongTimeString()}");
-                ImGui.NextColumn();
-                ImGui.Text($"{type}: {coroutines[i].TimeoutForAction}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].Running}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].AutoResume}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].IsDone}");
-                ImGui.NextColumn();
-                ImGui.Text($"{coroutines[i].Priority}");
-                ImGui.NextColumn();
-
-                if (coroutines[i].Running)
-                {
-                    if (ImGui.Button($"Pause##{coroutines[i].Name}##{runner.Name}")) coroutines[i].Pause();
-                }
-                else
-                {
-                    if (ImGui.Button($"Start##{coroutines[i].Name}##{runner.Name}")) coroutines[i].Resume();
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button($"Done##{coroutines[i].Name}##{runner.Name}")) coroutines[i].Done();
-                ImGui.NextColumn();
-            }
-
-            ImGui.Columns(1, "", false);
-        }
-
         private enum Windows
         {
             MainDebugs,
             NotMainDebugs,
             Plugins,
-            Coroutines,
             Caches
         }
     }

@@ -23,51 +23,6 @@ namespace ExileCore.PoEMemory.MemoryObjects
             EntityCache = new ConcurrentDictionary<uint, Entity>(8, 2048);
         }
 
-        public IEnumerator CollectEntities(
-            bool parseServerEntities,
-            ParallelOptions parallelOptions,
-            Action<Entity> entityRemoved,
-            Action<Entity> entityAdded)
-        {
-            if (Address == 0)
-            {
-                DebugWindow.LogError($"{nameof(EntityList)} -> Address is 0;");
-                yield return new WaitTime(100);
-            }
-            _entityListAddresses.Clear();
-            _entityAddresses.Clear();
-            _entityIds = new ConcurrentBag<long>();
-
-            var address = M.Read<long>(Address + 0x8);
-            _entityListAddresses.Add(address);
-
-            var node = M.Read<EntityListOffsets>(address);
-            GatherEntityAddressesRecursive(node);
-
-            Parallel.ForEach(_entityAddresses, parallelOptions, entityAddress =>
-            {
-                var entityId = M.Read<uint>(entityAddress + 0x60);
-                if (entityId <= 0) return;
-                if (entityId >= int.MaxValue && !parseServerEntities) return;
-                _entityIds.Add(entityId);
-                if (EntityCache.ContainsKey(entityId))
-                {
-                    EntityCache[entityId].IsValid = true;
-                    return;
-                }
-
-                var entity = GetObject<Entity>(entityAddress);
-                if (!EntityCache.TryAdd(entityId, entity))
-                {
-                    DebugWindow.LogError($"Unable to add entity to list, id: {entityId}");
-                }
-                entityAdded?.Invoke(entity);
-            });
-
-            GatherEntityIdsToDelete();
-            RemoveEntities(entityRemoved);
-        }
-
         public void CollectEntities2(
             bool parseServerEntities,
             ParallelOptions parallelOptions,
