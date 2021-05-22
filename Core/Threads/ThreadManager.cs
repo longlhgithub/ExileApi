@@ -44,6 +44,10 @@ namespace ExileCore.Threads
 
                 thread.Value.Abort();
                 DebugWindow.LogError($"ThreadManager -> Thread aborted: {thread.Key}, timeout: {job.TimeoutMs}ms, elapsed: {job.ElapsedMs}ms");
+                if (!_threads.TryRemove(thread.Key, out _))
+                {
+                    DebugWindow.LogError($"ThreadManager -> Unable to remove aborted Thread: {thread.Key}");
+                }
             }
         }
     }

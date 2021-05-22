@@ -62,7 +62,7 @@ namespace ExileCore
                     );
                     ValidEntitiesByType = UpdateValidEntitiesByType();
                 },
-                Math.Max(100, 1000 / _settings.EntitiesUpdate),
+                Math.Max(500, 1000 / _settings.EntitiesUpdate),
                 1000 / _settings.EntitiesUpdate
             );
         }
