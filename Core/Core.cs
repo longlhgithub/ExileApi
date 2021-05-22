@@ -224,7 +224,6 @@ namespace ExileCore
                     GameController.Dispose();
                     GameController = null;
                     _memory = null;
-                    _dx11.ImGuiRender.LostFocus -= LostFocus;
                 }
                 else
                 {
@@ -255,21 +254,18 @@ namespace ExileCore
         {
             try
             {
-                if (_memory != null)
-                {
-                    _dx11.ImGuiRender.LostFocus += LostFocus;
-                    GameController = new GameController(_memory, _soundController, _settings, MultiThreadManager);
-                    lastClientBound = _form.Bounds;
+                if (_memory == null) return;
+                GameController = new GameController(_memory, _soundController, _settings, MultiThreadManager);
+                lastClientBound = _form.Bounds;
 
-                    using (new PerformanceTimer("Plugin loader"))
-                    {
-                        _pluginManager = new PluginManager(
-                            GameController, 
-                            Graphics, 
-                            MultiThreadManager,
-                            _settings
-                        );
-                    }
+                using (new PerformanceTimer("Plugin loader"))
+                {
+                    _pluginManager = new PluginManager(
+                        GameController, 
+                        Graphics, 
+                        MultiThreadManager,
+                        _settings
+                    );
                 }
             }
             catch (Exception e)
@@ -305,12 +301,6 @@ namespace ExileCore
                 return clients[ixChosen];
 
             return null;
-        }
-
-        private void LostFocus(object sender, EventArgs eventArgs)
-        {
-            if (!WinApi.IsIconic(_memory.Process.MainWindowHandle))
-                WinApi.SetForegroundWindow(_memory.Process.MainWindowHandle);
         }
 
         public ThreadManager ThreadManager { get; } = new ThreadManager();
@@ -405,7 +395,7 @@ namespace ExileCore
                 ThreadManager.AddOrUpdateJob($"Plugin_Tick_{plugin.Name}", job);
             }
 
-            SpinWait.SpinUntil(() => pluginTickJobs.AllF(job => job.IsCompleted), JOB_TIMEOUT_MS);
+            //SpinWait.SpinUntil(() => pluginTickJobs.AllF(job => job.IsCompleted), JOB_TIMEOUT_MS);
         }
 
         private void RenderPlugins()
