@@ -56,7 +56,6 @@ namespace ExileCore
         private double _tickEnd;
         private double _tickStart;
         private double _timeSec;
-        private double ForeGroundTime;
         private int frameCounter;
         private Rectangle lastClientBound;
         private double lastCounterTime;
@@ -65,6 +64,33 @@ namespace ExileCore
         private int _ticks;
         private double _targetPcFrameTime;
         private double _deltaTargetPcFrameTime;
+        private Stopwatch BackGroundStopwatch { get; } = new Stopwatch();
+        private double ForeGroundTime { get; set; }
+        public static ILogger Logger { get; set; }
+        public static uint FramesCount { get; private set; }
+        public ThreadManager ThreadManager { get; } = new ThreadManager();
+
+        public double TargetPcFrameTime
+        {
+            get => _targetPcFrameTime;
+            private set
+            {
+                _targetPcFrameTime = value;
+                _deltaTargetPcFrameTime = value / 1000f;
+            }
+        }
+
+        public MultiThreadManager MultiThreadManager { get; private set; }
+        public static ObservableCollection<DebugInformation> DebugInformations { get; } =
+            new ObservableCollection<DebugInformation>();
+        public PluginManager _pluginManager { get; private set; }
+        private IntPtr FormHandle { get; }
+        public GameController GameController { get; private set; }
+        public bool GameStarted { get; private set; }
+        public Graphics Graphics { get; }
+        public bool IsForeground => WinApi.IsForegroundWindow(_memory.Process.MainWindowHandle)
+                                    || WinApi.IsForegroundWindow(FormHandle)
+                                    || _coreSettings.ForceForeground;
         public Core(RenderForm form)
         {
             try
@@ -157,29 +183,6 @@ namespace ExileCore
             }
         }
 
-        public static ILogger Logger { get; set; }
-        public static uint FramesCount { get; private set; }
-
-        public double TargetPcFrameTime
-        {
-            get => _targetPcFrameTime;
-            private set
-            {
-                _targetPcFrameTime = value;
-                _deltaTargetPcFrameTime =  value / 1000f;
-            }
-        }
-
-        public MultiThreadManager MultiThreadManager { get; private set; }
-        public static ObservableCollection<DebugInformation> DebugInformations { get; } =
-            new ObservableCollection<DebugInformation>();
-        public PluginManager _pluginManager { get; private set; }
-        private IntPtr FormHandle { get; }
-        public GameController GameController { get; private set; }
-        public bool GameStarted { get; private set; }
-        public Graphics Graphics { get; }
-        public bool IsForeground { get; private set; }
-
         public void Dispose()
         {
             _memory?.Dispose();
@@ -227,16 +230,14 @@ namespace ExileCore
                 }
                 else
                 {
-                    var isForegroundWindow = WinApi.IsForegroundWindow(_memory.Process.MainWindowHandle) ||
-                                             WinApi.IsForegroundWindow(FormHandle) || _coreSettings.ForceForeground;
-
-                    IsForeground = isForegroundWindow;
-                    GameController.IsForeGroundCache = isForegroundWindow;
+                    GameController.IsForeGroundCache = IsForeground;
                 }
             },
             1000,
             500);
         }
+
+
 
         public static Memory FindPoe()
         {
@@ -303,18 +304,25 @@ namespace ExileCore
             return null;
         }
 
-        public ThreadManager ThreadManager { get; } = new ThreadManager();
-
         public void Tick()
         {
             try
             {
+                if (!IsForeground)
+                {
+                    if (!BackGroundStopwatch.IsRunning) BackGroundStopwatch.Restart();
+                }
+                else
+                {
+                    BackGroundStopwatch.Reset();
+                }
+                ForeGroundTime = BackGroundStopwatch.ElapsedMilliseconds;
+
+                if (ForeGroundTime > 100) return;
+
                 var tickStartCore = _sw.Elapsed.TotalMilliseconds;
                 Input.Update(FormHandle);
                 FramesCount++;
-
-                ForeGroundTime = IsForeground ? 0 : ForeGroundTime + _deltaTargetPcFrameTime;
-                if (ForeGroundTime > 100) return;
 
                 // Main Control + collect entities
                 ThreadManager.AddOrUpdateJob(MainControl());
