@@ -29,6 +29,7 @@ namespace ExileCore.PoEMemory.MemoryObjects
             Action<Entity> entityRemoved,
             Action<Entity> entityAdded)
         {
+        	if(!pTheGame.InGame) return;
             if (Address == 0)
             {
                 DebugWindow.LogError($"{nameof(EntityList)} -> Address is 0;");
