@@ -16,6 +16,7 @@ using ExileCore.Shared.Helpers;
 using ExileCore.Shared.Nodes;
 using ExileCore.Shared.VersionChecker;
 using ExileCore.Threads;
+using ExileCore.Windows;
 using ImGuiNET;
 using JM.LinqFaster;
 using Serilog;
@@ -26,16 +27,8 @@ namespace ExileCore
 {
     public class Core : IDisposable
     {
-        private readonly DebugInformation _coreDebugInformation = new DebugInformation("Core");
-        private readonly DebugInformation _menuDebugInformation = new DebugInformation("Menu+Debug");
-        private readonly DebugInformation _pluginTickDebugInformation = new DebugInformation("All Plugins Tick");
-        private readonly DebugInformation _pluginRenderDebugInformation = new DebugInformation("All Plugins Render");
-        private readonly DebugInformation _gameControllerTickDebugInformation = new DebugInformation("GameController Tick");
-        private readonly DebugInformation _fpsCounterDebugInformation = new DebugInformation("Fps counter", false);
-        private readonly DebugInformation _deltaTimeDebugInformation = new DebugInformation("Delta Time", false);
-        private readonly DebugInformation _totalDebugInformation = new DebugInformation("Total Frame Time", "Total waste time");
+        private PerformanceWindow PerformanceWindow { get; }
 
-        private const int JOB_TIMEOUT_MS = 1000 / 5;
         private const int TICKS_BEFORE_SLEEP = 4;
         public static object SyncLocker = new object();
         private readonly CoreSettings _coreSettings;
@@ -95,6 +88,7 @@ namespace ExileCore
         {
             try
             {
+                Thread.CurrentThread.Priority = ThreadPriority.Highest;
                 form.Load += (sender, args) =>
                 {
                     var f = (RenderForm) sender;
@@ -105,7 +99,7 @@ namespace ExileCore
                 FormHandle = _form.Handle;
                 _settings = new SettingsContainer();
                 _coreSettings = _settings.CoreSettings;
-                _coreSettings.Threads = new RangeNode<int>(_coreSettings.Threads.Value, 0, Environment.ProcessorCount);
+                PerformanceWindow = new PerformanceWindow(_coreSettings, GameController, ThreadManager);
 
                 VersionChecker versionChecker;
                 using (new PerformanceTimer("Check version"))
@@ -261,12 +255,25 @@ namespace ExileCore
 
                 using (new PerformanceTimer("Plugin loader"))
                 {
+                    if (_pluginManager != null) return; 
                     _pluginManager = new PluginManager(
                         GameController, 
                         Graphics, 
                         MultiThreadManager,
                         _settings
                     );
+                    Task.Run(() =>
+                    {
+                        _pluginManager.LoadPlugins();
+                        foreach (var plugin in _pluginManager.Plugins)
+                        {
+                            PerformanceWindow.PluginRenderPerformance.Add(
+                                plugin.Name,
+                                plugin.RenderDebugInformation
+                            );
+                        }
+                    });
+
                 }
             }
             catch (Exception e)
@@ -277,9 +284,7 @@ namespace ExileCore
 
         private static int ChooseSingleProcess(List<(Process, Offsets)> clients)
         {
-            var o1 =
-                $"Yes - process #{clients[0].Item1.Id}, started at {clients[0].Item1.StartTime.ToLongTimeString()}";
-
+            var o1 = $"Yes - process #{clients[0].Item1.Id}, started at {clients[0].Item1.StartTime.ToLongTimeString()}";
             var o2 = $"No - process #{clients[1].Item1.Id}, started at {clients[1].Item1.StartTime.ToLongTimeString()}";
             const string o3 = "Cancel - quit this application";
 
@@ -320,7 +325,6 @@ namespace ExileCore
 
                 if (ForeGroundTime > 100) return;
 
-                var tickStartCore = _sw.Elapsed.TotalMilliseconds;
                 Input.Update(FormHandle);
                 FramesCount++;
 
@@ -330,35 +334,30 @@ namespace ExileCore
                 ThreadManager.AddOrUpdateJob(collectEntitiesJob);
 
                 // Start Plugin Tick Jobs
-                var tempStartTick = _sw.Elapsed.TotalMilliseconds;
                 TickPlugins();
-                _pluginTickDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tempStartTick;
 
                 if (GameController == null || _pluginManager == null || !_pluginManager.AllPluginsLoaded)
                 {
-                    _coreDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tickStartCore;
                     return;
                 }
 
                 AdaptToDynamicFps();
 
                 // GameController Tick
-                tempStartTick = _sw.Elapsed.TotalMilliseconds;
-                GameController.Tick();
-                _gameControllerTickDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tempStartTick;
+                PerformanceWindow.CorePerformance[PerformanceCoreEnum.GameControllerTick]
+                    .TickAction(() => GameController.Tick());
 
                 // Render Main Menu + Debug Window
-                tempStartTick = _sw.Elapsed.TotalMilliseconds;
-                _debugWindow.Render();
-                _mainMenu.Render(GameController, _pluginManager?.Plugins);
-                _menuDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tempStartTick;
+                PerformanceWindow.CorePerformance[PerformanceCoreEnum.WindowsRender]
+                    .TickAction(() =>
+                    {
+                        _debugWindow.Render();
+                        _mainMenu.Render(GameController, _pluginManager?.Plugins, PerformanceWindow);
+                    });
 
                 // Render Plugins
-                tempStartTick = _sw.Elapsed.TotalMilliseconds;
-                RenderPlugins();
-                _pluginRenderDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tempStartTick;
-
-                _coreDebugInformation.Tick = _sw.Elapsed.TotalMilliseconds - tickStartCore;
+                PerformanceWindow.CorePerformance[PerformanceCoreEnum.AllPluginsRender]
+                    .TickAction(RenderPlugins);
             }
             catch (Exception ex)
             {
@@ -368,7 +367,7 @@ namespace ExileCore
 
         private void AdaptToDynamicFps()
         {
-            _timeSec += GameController.DeltaTime;
+            _timeSec += 1000 / (PerformanceWindow.FpsCounter.Tick == 0 ? 60 : PerformanceWindow.FpsCounter.Tick);
             if (!(_timeSec >= 1000)) return;
             _timeSec = 0;
          
@@ -413,7 +412,7 @@ namespace ExileCore
             foreach (var plugin in _pluginManager?.Plugins)
             {
                 if (!plugin.IsEnable) continue;
-                if (!plugin.CanRender) continue;
+                //if (!plugin.CanRender) continue;
                 if (!GameController.InGame && !plugin.Force) continue;
 
                 if (_coreSettings.CollectDebugInformation?.Value == true)
@@ -442,20 +441,20 @@ namespace ExileCore
                 return;
             }
 
-            _dx11.ImGuiRender.InputUpdate(_totalDebugInformation.Tick*_deltaTargetPcFrameTime);
+            _dx11.ImGuiRender.InputUpdate(PerformanceWindow.CorePerformance[PerformanceCoreEnum.TotalFrameTime].Tick);
             _dx11.Render(TargetPcFrameTime, this);
             NextRender += TargetPcFrameTime;
             frameCounter++;
 
             if (Time.TotalMilliseconds - lastCounterTime > 1000)
             {
-                _fpsCounterDebugInformation.Tick = frameCounter;
-                _deltaTimeDebugInformation.Tick = 1000f / frameCounter;
+                PerformanceWindow.FpsCounter.Tick = frameCounter;
                 lastCounterTime = Time.TotalMilliseconds;
                 frameCounter = 0;
             }
 
-            _totalDebugInformation.Tick = Time.TotalMilliseconds - startTime;
+            PerformanceWindow.CorePerformance[PerformanceCoreEnum.TotalFrameTime]
+                .Tick = Time.TotalMilliseconds - startTime;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExileCore.Shared;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,12 +11,14 @@ namespace ExileCore.Threads
 {
     public class ThreadUnit
     {
+        public DebugInformation PerformanceTimer { get; }
         private readonly Thread _thread;
         private readonly ManualResetEventSlim _waitEvent;
         private Job _job;
 
         public ThreadUnit(string name)
         {
+            PerformanceTimer = new DebugInformation(name);
             _waitEvent = new ManualResetEventSlim(true, 1000);
             _thread = new Thread(DoWork)
             {
@@ -44,7 +47,7 @@ namespace ExileCore.Threads
                     _waitEvent.Wait();
                     continue;
                 }
-                Job.Run();
+                PerformanceTimer.TickAction(Job.Run);
             }
         }
 

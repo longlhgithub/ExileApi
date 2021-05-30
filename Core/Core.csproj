@@ -182,6 +182,8 @@
     <Compile Include="DebugWindow.cs" />
     <Compile Include="EntityListWrapper.cs" />
     <Compile Include="MultiThreadManager.cs" />
+    <Compile Include="Windows\PerformanceCoreEnum.cs" />
+    <Compile Include="Windows\PerformanceWindow.cs" />
     <Compile Include="PoEMemory\Component.cs" />
     <Compile Include="PoEMemory\Components\Actor.cs" />
     <Compile Include="PoEMemory\Components\Animated.cs" />
@@ -394,7 +396,7 @@
     <Compile Include="Core.cs" />
     <Compile Include="CoreSettings.cs" />
     <Compile Include="GameController.cs" />
-    <Compile Include="GameWIndow.cs" />
+    <Compile Include="GameWindow.cs" />
     <Compile Include="Graphics.cs" />
     <Compile Include="Input.cs" />
     <Compile Include="Logger.cs" />

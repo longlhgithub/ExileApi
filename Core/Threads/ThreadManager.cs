@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ExileCore.Shared;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +10,11 @@ namespace ExileCore.Threads
 {
     public class ThreadManager
     {
-        private readonly ConcurrentDictionary<string, ThreadUnit> _threads;
+        public ConcurrentDictionary<string, ThreadUnit> Threads { get; }
 
         public ThreadManager()
         {
-            _threads = new ConcurrentDictionary<string, ThreadUnit>();
+            Threads = new ConcurrentDictionary<string, ThreadUnit>();
         }
 
         public bool AddOrUpdateJob(Job job)
@@ -23,20 +24,20 @@ namespace ExileCore.Threads
 
         public bool AddOrUpdateJob(string name, Job job)
         {
-            if (!_threads.ContainsKey(name))
+            if (!Threads.ContainsKey(name))
             {
                 var threadUnit = new ThreadUnit(name);
-                _threads.AddOrUpdate(name, threadUnit, (key, oldValue) => threadUnit);
+                Threads.AddOrUpdate(name, threadUnit, (key, oldValue) => threadUnit);
             }
-            if (_threads[name].Job != null && !_threads[name].Job.IsCompleted) return false;
+            if (Threads[name].Job != null && !Threads[name].Job.IsCompleted) return false;
 
-            _threads[name].Job = job;
+            Threads[name].Job = job;
             return true;
         }
 
         public void AbortLongRunningThreads()
         {
-            foreach (var thread in _threads)
+            foreach (var thread in Threads)
             {
                 var job = thread.Value?.Job;
                 if (job == null) continue;
@@ -44,7 +45,7 @@ namespace ExileCore.Threads
 
                 thread.Value.Abort();
                 DebugWindow.LogError($"ThreadManager -> Thread aborted: {thread.Key}, timeout: {job.TimeoutMs}ms, elapsed: {job.ElapsedMs}ms");
-                if (!_threads.TryRemove(thread.Key, out _))
+                if (!Threads.TryRemove(thread.Key, out _))
                 {
                     DebugWindow.LogError($"ThreadManager -> Unable to remove aborted Thread: {thread.Key}");
                 }

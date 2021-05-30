@@ -33,7 +33,6 @@ namespace ExileCore
     {
         private readonly CoreSettings _settings;
         private readonly DebugInformation debClearCache;
-        private readonly DebugInformation debDeltaTime;
         private readonly TimeCache<Vector2> LeftCornerMap;
         private readonly TimeCache<Vector2> UnderCornerMap;
         private bool IsForeGroundLast;
@@ -83,7 +82,6 @@ namespace ExileCore
                 });
             };*/
 
-            debDeltaTime = Core.DebugInformations.FirstOrDefault(x => x.Name == "Delta Time");
 
             LeftCornerMap = new TimeCache<Vector2>(GetLeftCornerMap, 500);
             UnderCornerMap = new TimeCache<Vector2>(GetUnderCornerMap, 500);
@@ -129,7 +127,6 @@ namespace ExileCore
         public MultiThreadManager MultiThreadManager { get; }
         public EntityListWrapper EntityListWrapper { get; }
         public Cache Cache { get; set; }
-        public double DeltaTime => debDeltaTime.Tick;
         public bool Initialized { get; }
         public ICollection<Entity> Entities => EntityListWrapper.Entities;
         public Dictionary<string, object> Debug { get; } = new Dictionary<string, object>();

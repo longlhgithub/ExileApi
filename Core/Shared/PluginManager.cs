@@ -74,11 +74,9 @@ namespace ExileCore.Shared
                     Directory.CreateDirectory(directory.Value);
                 }
             }
-
-            Task.Run(() => LoadPlugins(gameController));
         }
 
-        private void LoadPlugins(GameController gameController)
+        public void LoadPlugins()
         {
             var pluginLoader = new PluginLoader(_gameController, _graphics, this);
 
@@ -130,9 +128,9 @@ namespace ExileCore.Shared
 
             AddPluginInfoToDevTree();
 
-            InitialisePlugins(gameController);
+            InitialisePlugins(_gameController);
 
-            AreaOnOnAreaChange(gameController.Area.CurrentArea);
+            AreaOnOnAreaChange(_gameController.Area.CurrentArea);
             AllPluginsLoaded = true;
         }
 
