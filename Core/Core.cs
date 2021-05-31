@@ -38,44 +38,21 @@ namespace ExileCore
         private readonly MenuWindow _mainMenu;
         private readonly SettingsContainer _settings;
         private readonly SoundController _soundController;
-        private readonly Stopwatch _sw = Stopwatch.StartNew();
-        private double _elTime = 1000 / 20f;
-        private double _endParallelCoroutineTimer;
         private Memory _memory;
         private bool _memoryValid = true;
-        private float _minimalFpsTime;
-        private double _startParallelCoroutineTimer;
-        private double _targetParallelFpsTime;
-        private double _tickEnd;
-        private double _tickStart;
         private double _timeSec;
         private int frameCounter;
         private Rectangle lastClientBound;
         private double lastCounterTime;
-        private double NextCoroutineTime;
         private double NextRender;
         private int _ticks;
-        private double _targetPcFrameTime;
-        private double _deltaTargetPcFrameTime;
         private Stopwatch BackGroundStopwatch { get; } = new Stopwatch();
         private double ForeGroundTime { get; set; }
         public static ILogger Logger { get; set; }
         public static uint FramesCount { get; private set; }
         public ThreadManager ThreadManager { get; } = new ThreadManager();
-
-        public double TargetPcFrameTime
-        {
-            get => _targetPcFrameTime;
-            private set
-            {
-                _targetPcFrameTime = value;
-                _deltaTargetPcFrameTime = value / 1000f;
-            }
-        }
-
+        public double TargetPcFrameTime { get; private set; }
         public MultiThreadManager MultiThreadManager { get; private set; }
-        public static ObservableCollection<DebugInformation> DebugInformations { get; } =
-            new ObservableCollection<DebugInformation>();
         public PluginManager _pluginManager { get; private set; }
         private IntPtr FormHandle { get; }
         public GameController GameController { get; private set; }
@@ -149,9 +126,7 @@ namespace ExileCore
                 MultiThreadManager = new MultiThreadManager(_coreSettings.Threads);
 
                 TargetPcFrameTime = 1000f / _coreSettings.TargetFps;
-                _targetParallelFpsTime = 1000f / _coreSettings.TargetParallelFPS;
                 _coreSettings.TargetFps.OnValueChanged += (sender, i) => { TargetPcFrameTime = 1000f / i; };
-                _coreSettings.TargetParallelFPS.OnValueChanged += (sender, i) => { _targetParallelFpsTime = 1000f / i; };
 
                 _coreSettings.DynamicFPS.OnValueChanged += (sender, b) =>
                 {

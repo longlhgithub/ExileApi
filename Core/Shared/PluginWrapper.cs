@@ -36,11 +36,6 @@ namespace ExileCore.Shared
         public DebugInformation RenderDebugInformation { get; }
         public bool IsEnable => Plugin._Settings.Enable;
 
-        public void CorrectThisTick(float val)
-        {
-            TickDebugInformation.CorrectAfterTick(val);
-        }
-
         public void Onload()
         {
             try

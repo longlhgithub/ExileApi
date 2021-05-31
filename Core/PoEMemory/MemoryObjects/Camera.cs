@@ -37,13 +37,6 @@ namespace ExileCore.PoEMemory.MemoryObjects
         {
             try
             {
-                /*
-                var localPlayer = TheGame.IngameState.Data.LocalPlayer;
-                var isplayer = localPlayer.Address == Entity.Address && localPlayer.IsValid;
-                var isMoving = false;
-                if (isplayer) isMoving = Entity.GetComponent<Actor>().isMoving;
-*/
-
                 Vector2 result;
                 var cord = *(Vector4*) &vec;
                 cord.W = 1;
@@ -51,17 +44,6 @@ namespace ExileCore.PoEMemory.MemoryObjects
                 cord = Vector4.Divide(cord, cord.W);
                 result.X = (cord.X + 1.0f) * HalfWidth;
                 result.Y = (1.0f - cord.Y) * HalfHeight;
-                /*
-                if (!isplayer) return result;
-                if (isMoving)
-                {
-                    if (Math.Abs(oldplayerCord.X - result.X) < 50 || Math.Abs(oldplayerCord.X - result.Y) < 50)
-                        result = oldplayerCord;
-                    else
-                        oldplayerCord = result;
-                }
-                else oldplayerCord = result;
-*/
 
                 return result;
             }

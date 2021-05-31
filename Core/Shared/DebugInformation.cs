@@ -20,11 +20,6 @@ namespace ExileCore.Shared
                 Ticks[i] = 0;
                 TicksAverage[i] = 0;
             }
-
-            lock (Core.SyncLocker)
-            {
-                Core.DebugInformations.Add(this);
-            }
         }
 
         public DebugInformation(string name, string description, bool main = true) : this(name, main)
@@ -82,12 +77,6 @@ namespace ExileCore.Shared
         public float[] Ticks { get; } = new float[SizeArray];
         public float[] TicksAverage { get; } = new float[SizeArray];
 
-        public void CorrectAfterTick(float val)
-        {
-            Ticks[Index - 1] = val;
-            tick += val;
-        }
-
         public float TickAction(Action action, bool onlyValue = false)
         {
             var start = sw.Elapsed.TotalMilliseconds;
@@ -96,11 +85,6 @@ namespace ExileCore.Shared
             if (!onlyValue) Tick = value;
 
             return value;
-        }
-
-        public void AddToCurrentTick(float value)
-        {
-            Ticks[Index] += value;
         }
     }
 }
