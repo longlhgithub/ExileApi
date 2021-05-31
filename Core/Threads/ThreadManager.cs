@@ -29,7 +29,12 @@ namespace ExileCore.Threads
                 var threadUnit = new ThreadUnit(name);
                 Threads.AddOrUpdate(name, threadUnit, (key, oldValue) => threadUnit);
             }
-            if (Threads[name].Job != null && !Threads[name].Job.IsCompleted) return false;
+            if (Threads[name].Job != null
+                && !Threads[name].Job.IsCompleted
+                && Threads[name].Job.IsStarted)
+            {
+                return false;
+            }
 
             Threads[name].Job = job;
             return true;
