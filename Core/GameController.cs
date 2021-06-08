@@ -38,14 +38,12 @@ namespace ExileCore
         private bool IsForeGroundLast;
         public PluginBridge PluginBridge;
 
-        public GameController(Memory memory, SoundController soundController, SettingsContainer settings,
-            MultiThreadManager multiThreadManager)
+        public GameController(Memory memory, SoundController soundController, SettingsContainer settings)
         {
             _settings = settings.CoreSettings;
             Memory = memory;
             SoundController = soundController;
             Settings = settings;
-            MultiThreadManager = multiThreadManager;
 
             try
             {
@@ -54,7 +52,7 @@ namespace ExileCore
                 Area = new AreaController(Game);
                 Window = new GameWindow(memory.Process);
                 Files = Game.Files;
-                EntityListWrapper = new EntityListWrapper(this, _settings, multiThreadManager);
+                EntityListWrapper = new EntityListWrapper(this, _settings);
             }
             catch (Exception e)
             {
@@ -124,7 +122,6 @@ namespace ExileCore
         public IMemory Memory { get; }
         public SoundController SoundController { get; }
         public SettingsContainer Settings { get; }
-        public MultiThreadManager MultiThreadManager { get; }
         public EntityListWrapper EntityListWrapper { get; }
         public Cache Cache { get; set; }
         public bool Initialized { get; }

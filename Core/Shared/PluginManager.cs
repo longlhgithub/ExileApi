@@ -30,7 +30,6 @@ namespace ExileCore.Shared
         private string AutoPluginUpdateSettingsPathDump => Path.Combine("config", "dumpUpdateSettings.json");
         private readonly GameController _gameController;
         private readonly Graphics _graphics;
-        private readonly MultiThreadManager _multiThreadManager;
         private readonly SettingsContainer _settingsContainer;
 
         private Dictionary<string, string> Directories { get; }
@@ -41,13 +40,11 @@ namespace ExileCore.Shared
         public PluginManager(
             GameController gameController, 
             Graphics graphics, 
-            MultiThreadManager multiThreadManager,
             SettingsContainer settingsContainer
             )
         {
             _gameController = gameController;
             _graphics = graphics;
-            _multiThreadManager = multiThreadManager;
             _settingsContainer = settingsContainer;
 
             Plugins = new List<PluginWrapper>();
@@ -290,25 +287,10 @@ namespace ExileCore.Shared
 
         private void EntityListWrapperOnEntityAdded(Entity entity)
         {
-            if (_gameController.Settings.CoreSettings.AddedMultiThread && _multiThreadManager.ThreadsCount > 0)
+            foreach (var plugin in Plugins)
             {
-                var listJob = new List<Job>();
-
-                Plugins.WhereF(x => x.IsEnable).Batch(_multiThreadManager.ThreadsCount)
-                    .ForEach(wrappers =>
-                        listJob.Add(_multiThreadManager.AddJob(() => wrappers.ForEach(x => x.EntityAdded(entity)),
-                            "Entity added")));
-
-                _multiThreadManager.Process(this);
-                SpinWait.SpinUntil(() => listJob.AllF(x => x.IsCompleted), 500);
-            }
-            else
-            {
-                foreach (var plugin in Plugins)
-                {
-                    if (plugin.IsEnable)
-                        plugin.EntityAdded(entity);
-                }
+                if (plugin.IsEnable)
+                    plugin.EntityAdded(entity);
             }
         }
 

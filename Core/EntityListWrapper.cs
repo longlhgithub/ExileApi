@@ -39,7 +39,7 @@ namespace ExileCore
         public List<Entity> NotOnlyValidEntities { get; private set; } = new List<Entity>(500);
 
 
-        public EntityListWrapper(GameController gameController, CoreSettings settings, MultiThreadManager multiThreadManager)
+        public EntityListWrapper(GameController gameController, CoreSettings settings)
         {
             _instance = this;
             _gameController = gameController;

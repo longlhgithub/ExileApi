@@ -52,7 +52,6 @@ namespace ExileCore
         public static uint FramesCount { get; private set; }
         public ThreadManager ThreadManager { get; } = new ThreadManager();
         public double TargetPcFrameTime { get; private set; }
-        public MultiThreadManager MultiThreadManager { get; private set; }
         public PluginManager _pluginManager { get; private set; }
         private IntPtr FormHandle { get; }
         public GameController GameController { get; private set; }
@@ -122,8 +121,6 @@ namespace ExileCore
 
                 _mainMenu = new MenuWindow(this, _settings, _dx11.ImGuiRender.fonts, ref versionChecker);
                 _debugWindow = new DebugWindow(Graphics, _coreSettings);
-
-                MultiThreadManager = new MultiThreadManager(_coreSettings.Threads);
 
                 TargetPcFrameTime = 1000f / _coreSettings.TargetFps;
                 _coreSettings.TargetFps.OnValueChanged += (sender, i) => { TargetPcFrameTime = 1000f / i; };
@@ -225,18 +222,13 @@ namespace ExileCore
             try
             {
                 if (_memory == null) return;
-                GameController = new GameController(_memory, _soundController, _settings, MultiThreadManager);
+                GameController = new GameController(_memory, _soundController, _settings);
                 lastClientBound = _form.Bounds;
 
                 using (new PerformanceTimer("Plugin loader"))
                 {
                     if (_pluginManager != null) return; 
-                    _pluginManager = new PluginManager(
-                        GameController, 
-                        Graphics, 
-                        MultiThreadManager,
-                        _settings
-                    );
+                    _pluginManager = new PluginManager(GameController, Graphics, _settings);
                     Task.Run(() =>
                     {
                         _pluginManager.LoadPlugins();

@@ -181,7 +181,6 @@
     <Compile Include="CommandExecutor.cs" />
     <Compile Include="DebugWindow.cs" />
     <Compile Include="EntityListWrapper.cs" />
-    <Compile Include="MultiThreadManager.cs" />
     <Compile Include="Windows\PerformanceCoreEnum.cs" />
     <Compile Include="Windows\PerformanceWindow.cs" />
     <Compile Include="PoEMemory\Component.cs" />
